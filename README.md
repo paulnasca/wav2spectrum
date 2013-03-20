@@ -1,4 +1,7 @@
-wav2spectrum
-============
+Wav2Spectrum is a simple application which takes a small chunk (window) from input wav and outputs the frequencies one by one (a sweep) into another wav file.
 
-a simple application to hear the harmonics/overtones from an audio file
+It is very usefull to hear the harmonics (one by one) from a sound.
+
+Run with "-h" argument for help.
+
+Requirements: numpy, scipy 
