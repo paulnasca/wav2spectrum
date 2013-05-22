@@ -26,6 +26,8 @@ import numpy.fft
 import numpy
 import math
 
+extra_silence=0.5
+
 #load a wav file and return the data as mono values (-1.0,1.0) and the sample rate
 def load_wav(filename):
     try:
@@ -149,10 +151,10 @@ def get_audio_spectrum(input_smp, samplerate, window_size_seconds, input_positio
     sweep_out[-2]=noise_amplitude
     sweep_out[-3]=noise_amplitude
 
-    half_second_silence=numpy.zeros(samplerate//2)
+    extra_silence_smp=numpy.zeros(int(samplerate*extra_silence))
 
-    #the resulting sound is concatenation of: input_window + 0.5 seconds_silence + sweep_output signal + 0.5 seconds_silence
-    sweep_out=numpy.concatenate((sweep_in,half_second_silence,sweep_out,half_second_silence))
+    #the resulting sound is concatenation of: input_window + extra_silence + sweep_output signal + extra_silence
+    sweep_out=numpy.concatenate((sweep_in,extra_silence_smp,sweep_out,extra_silence_smp))
 
     return sweep_out
 
@@ -180,6 +182,7 @@ parser.add_argument("-F","--max_freq",type=force_float_arguments_range(0.0,20000
 parser.add_argument("-z","--output_size",type=force_float_arguments_positive_value, default=10.0,help="output size (seconds)")
 parser.add_argument("-l","--limit_output", type=force_float_arguments_range(-120,-6), default=-80.0,help="limit output (dB)")
 parser.add_argument("-e","--print_peaks", action='store_true', default=False)
+parser.add_argument("-t","--output_frequencies_positions", action='store_true', default=False)
 
 if len(sys.argv)==1:
     parser.print_help()
@@ -198,6 +201,7 @@ max_freq_Hz=arguments.max_freq
 output_size_seconds=arguments.output_size
 limit_output_dB=arguments.limit_output
 print_peaks_enabled=arguments.print_peaks
+output_frequencies_positions=arguments.output_frequencies_positions
 
 
 tmp=load_wav(in_filename)
@@ -208,6 +212,17 @@ smp=numpy.float32(tmp[1])
 smp_spectrum=get_audio_spectrum(smp,samplerate,window_size_seconds,input_position_seconds,min_freq_Hz,max_freq_Hz,output_size_seconds,limit_output_dB,print_peaks_enabled)
 
 save_wav(out_filename,samplerate,smp_spectrum)
+
+if output_frequencies_positions:
+    output_size_ms=int(output_size_seconds*1000.0)
+    start_ms=int((window_size_seconds+extra_silence)*1000.0)
+    with open(out_filename+".txt", "a") as tf:
+        tf.write("#time_milliseconds frequency_Hz\n")
+        for i in range(output_size_ms):
+            fx=float(i)/output_size_ms
+            freq_Hz=min_freq_Hz*(1-fx)+max_freq_Hz*fx
+            tf.write("%d %d\n" % (i+start_ms, int(freq_Hz)))
+
 
 
 
